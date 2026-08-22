@@ -1,2 +1,5 @@
 시안/
 gas/.clasp.json
+img/*.png
+img/manifest.json
+img/.codex-last/
