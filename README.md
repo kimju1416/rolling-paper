@@ -7,7 +7,7 @@
 - `시안/` — 화면 시안 모음
 
 ## 주소
-- 편지 쓰기·보기: https://kimju1416.github.io/rolling-paper/
+- 편지 쓰기·보기: https://thanks.kimju.kr/
 - 관리자(편지 내리기): 주소 뒤에 `?admin=1`
 
 ## 운영 메모
