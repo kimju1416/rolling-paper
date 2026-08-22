@@ -45,13 +45,6 @@ function setup() {
   return ss.getUrl();
 }
 
-/** 관리 비밀번호 변경 — 값만 바꿔 실행 */
-function changeAdminPin() {
-  const newPin = '1234'; // ← 여기를 바꾸고 실행
-  PropertiesService.getScriptProperties().setProperty(P_PIN, String(newPin));
-  Logger.log('변경 완료');
-}
-
 function getSS_() {
   const id = PropertiesService.getScriptProperties().getProperty(P_SS_ID);
   if (!id) throw new Error('setup() 함수를 먼저 실행하세요.');
@@ -102,6 +95,7 @@ function doPost(e) {
       case 'update': return json_(updateLetter_(body));
       case 'remove': return json_(removeMine_(body));
       case 'purge':  return json_(deleteLetter_(body));
+      case 'setpin': return json_(changePin_(body));
       case 'admin':  return json_(listAll_(body));
       default:       return json_({ ok: false, error: '알 수 없는 요청입니다.' });
     }
@@ -255,6 +249,15 @@ function removeMine_(body) {
 function checkPin_(pin) {
   const saved = PropertiesService.getScriptProperties().getProperty(P_PIN);
   return !!saved && String(pin) === String(saved);
+}
+
+/** 관리자: 관리 비밀번호 바꾸기 (지금 비밀번호를 알아야 한다) */
+function changePin_(body) {
+  if (!checkPin_(body.pin)) return { ok: false, error: '관리 비밀번호가 맞지 않습니다.' };
+  const next = String(body.newPin || '').trim();
+  if (next.length < 4) return { ok: false, error: '새 비밀번호는 네 자리 이상으로 정하세요.' };
+  PropertiesService.getScriptProperties().setProperty(P_PIN, next);
+  return { ok: true, data: { changed: true } };
 }
 
 /** 관리자: 편지 숨기기 / 되돌리기 */
