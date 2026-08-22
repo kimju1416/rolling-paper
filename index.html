@@ -208,7 +208,7 @@ footer{padding:0 24px 96px;text-align:center;font-size:11.5px;color:#A79880;line
     <div class="counter"><span id="cnt">0</span> / 500</div>
 
     <div class="err" id="fErr" hidden></div>
-    <button class="submit" id="submitBtn" type="button">빨랫줄에 걸기</button>
+    <button class="submit" id="submitBtn" type="button">마음 보내기</button>
     <div class="hint">한 번 건 편지는 직접 지울 수 없습니다. 보내기 전에 한 번 읽어 보세요.</div>
   </div>
 </div>
@@ -423,7 +423,7 @@ $('submitBtn').addEventListener('click', function () {
   err.hidden = true;
 
   const btn = $('submitBtn');
-  btn.disabled = true; btn.textContent = '거는 중…';
+  btn.disabled = true; btn.textContent = '보내는 중…';
 
   fetch(API_URL, {
     method: 'POST',
@@ -449,7 +449,7 @@ $('submitBtn').addEventListener('click', function () {
       load();
     })
     .catch(function (e) { fail(e.message || '보내지 못했습니다. 잠시 후 다시 시도하세요.'); })
-    .finally(function () { btn.disabled = false; btn.textContent = '빨랫줄에 걸기'; });
+    .finally(function () { btn.disabled = false; btn.textContent = '마음 보내기'; });
 });
 
 /* ── 관리자: 편지 내리기 ── */
