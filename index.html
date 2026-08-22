@@ -380,7 +380,8 @@ $('main').addEventListener('click', function (e) {
 });
 
 /* ── 시트 열고 닫기 ── */
-function open(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
+let openedAt = 0;
+function open(id) { $(id).hidden = false; openedAt = Date.now(); document.body.style.overflow = 'hidden'; }
 function close(id) { $(id).hidden = true; document.body.style.overflow = ''; }
 
 document.querySelectorAll('[data-close]').forEach(function (b) {
@@ -389,6 +390,22 @@ document.querySelectorAll('[data-close]').forEach(function (b) {
 document.querySelectorAll('.dim').forEach(function (d) {
   d.addEventListener('click', function (e) { if (e.target === d) close(d.id); });
 });
+
+/* 읽기 모달은 화면 아무 데나 눌러도 닫힌다 (버튼·스크롤·글자 끌기는 제외) */
+(function () {
+  const rd = $('readDim');
+  let sx = 0, sy = 0, dragged = false;
+  rd.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; dragged = false; });
+  rd.addEventListener('pointermove', function (e) {
+    if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) dragged = true;
+  });
+  rd.addEventListener('click', function (e) {
+    if (dragged) return;                                    // 편지를 훑어 내리는 중
+    if (Date.now() - openedAt < 250) return;                // 열자마자 닫히는 것 방지
+    if (e.target.closest('button,a,input,textarea,select,label')) return;
+    close('readDim');
+  });
+})();
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') document.querySelectorAll('.dim:not([hidden])').forEach(function (d) { close(d.id); });
 });
