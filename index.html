@@ -72,7 +72,8 @@ main{padding:14px 0 120px;min-height:40vh}
  box-shadow:0 4px 12px rgba(90,70,40,.16);border:1px solid #EFE7D6}
 .card .ph{height:92px;border-radius:1px;display:flex;align-items:flex-end;padding:7px;overflow:hidden;
  font-family:'Gaegu',cursive;font-size:13.5px;line-height:1.42;color:#42392C}
-.card .ph span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.card .ph span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+ overflow-wrap:anywhere}
 .card .nm{font-family:'Gaegu',cursive;font-size:15px;font-weight:700;margin-top:7px;color:#4A3F2F;
  display:flex;flex-direction:column;gap:1px;overflow:hidden}
 .card .nm em{font-family:'Pretendard Variable',Pretendard,sans-serif;font-size:9.5px;font-weight:400;
@@ -109,7 +110,7 @@ main{padding:14px 0 120px;min-height:40vh}
 .dim{position:fixed;inset:0;z-index:50;background:rgba(40,30,15,.45);
  display:flex;align-items:center;justify-content:center;padding:20px 14px}
 .dim[hidden]{display:none}
-.sheet{width:100%;max-width:460px;max-height:88dvh;overflow-y:auto;background:var(--bg);
+.sheet{width:100%;max-width:460px;max-height:88dvh;overflow-y:auto;overflow-x:hidden;background:var(--bg);
  border-radius:16px;padding:20px 18px 22px;
  box-shadow:0 18px 52px rgba(50,35,10,.38);animation:pop .2s ease-out}
 @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
@@ -145,10 +146,12 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--point);
  box-shadow:0 4px 14px rgba(90,70,40,.12)}
 .read .who{display:flex;align-items:baseline;gap:8px;padding-bottom:12px;margin-bottom:13px;
  border-bottom:1px dashed var(--line)}
-.read .who b{font-family:'Gaegu',cursive;font-size:21px;color:#4A3F2F}
+.read .who{flex-wrap:wrap}
+.read .who b{font-family:'Gaegu',cursive;font-size:21px;color:#4A3F2F;overflow-wrap:anywhere}
 .read .who span{font-size:12px;color:var(--sub)}
 .read .who i{margin-left:auto;font-style:normal;font-size:11px;color:#B3A78D}
-.read .body{font-family:'Gaegu',cursive;font-size:19.5px;line-height:1.78;color:#413A2F;white-space:pre-wrap}
+.read .body{font-family:'Gaegu',cursive;font-size:19.5px;line-height:1.78;color:#413A2F;
+ white-space:pre-wrap;overflow-wrap:anywhere}
 .read .paper.t0{background:linear-gradient(170deg,#FDF6E4,#FBEDD3)}
 .read .paper.t1{background:linear-gradient(170deg,#EDF6EF,#DCEEE1)}
 .read .paper.t2{background:linear-gradient(170deg,#EFF1FA,#E1E5F4)}
