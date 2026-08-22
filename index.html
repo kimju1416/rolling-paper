@@ -107,12 +107,12 @@ main{padding:14px 0 120px;min-height:40vh}
 
 /* 시트·모달 */
 .dim{position:fixed;inset:0;z-index:50;background:rgba(40,30,15,.45);
- display:flex;align-items:flex-end;justify-content:center;padding:0}
+ display:flex;align-items:center;justify-content:center;padding:20px 14px}
 .dim[hidden]{display:none}
-.sheet{width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;background:var(--bg);
- border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
- box-shadow:0 -10px 40px rgba(50,35,10,.3);animation:up .22s ease-out}
-@keyframes up{from{transform:translateY(22px);opacity:.6}to{transform:none;opacity:1}}
+.sheet{width:100%;max-width:460px;max-height:88dvh;overflow-y:auto;background:var(--bg);
+ border-radius:16px;padding:20px 18px 22px;
+ box-shadow:0 18px 52px rgba(50,35,10,.38);animation:pop .2s ease-out}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
 .sheet h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
 .sheet .close{position:absolute;right:14px;top:14px}
 .sh-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -124,7 +124,7 @@ label.lab{display:block;font-size:12.5px;font-weight:600;color:#6E6355;margin:16
 input[type=text],textarea,select{width:100%;font-family:inherit;font-size:15px;color:var(--ink);
  background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 13px}
 input[type=text],select{height:48px}
-textarea{padding:13px;line-height:1.7;resize:vertical;min-height:132px}
+textarea{padding:13px;line-height:1.78;resize:none;min-height:190px;overflow:hidden}
 input:focus,textarea:focus,select:focus{outline:none;border-color:var(--point);
  box-shadow:0 0 0 3px rgba(138,109,63,.14)}
 .chips{display:flex;gap:8px}
@@ -141,10 +141,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--point);
 .hint{margin-top:12px;font-size:11.5px;color:var(--sub);line-height:1.7}
 
 /* 읽기 모달 — 화면 가운데에서 확대 */
-.dim.read{align-items:center;padding:22px 16px}
-.read .sheet{border-radius:16px;max-width:440px;max-height:86dvh;
- padding:18px 18px 20px;animation:pop .2s ease-out;box-shadow:0 20px 54px rgba(50,35,10,.4)}
-@keyframes pop{from{transform:scale(.93);opacity:0}to{transform:none;opacity:1}}
 .read .paper{background:var(--card);border:1px solid #EFE7D6;border-radius:3px;padding:20px 18px;
  box-shadow:0 4px 14px rgba(90,70,40,.12)}
 .read .who{display:flex;align-items:baseline;gap:8px;padding-bottom:12px;margin-bottom:13px;
@@ -160,6 +156,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--point);
 .read .paper.t4{background:linear-gradient(170deg,#F7F1E7,#EBE0CE)}
 .admin-act{margin-top:14px;display:flex;gap:8px}
 .admin-act[hidden]{display:none}
+.mine-act{margin-top:14px;display:flex;gap:8px}
+.mine-act[hidden]{display:none}
+.mine-act button{flex:1;height:46px;border-radius:10px;border:1px solid var(--line);background:#fff;
+ font-family:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.mine-act button.danger{color:var(--err)}
+.pin.mine .card{box-shadow:0 4px 12px rgba(90,70,40,.16),0 0 0 2px var(--point)}
+.pin.mine .card .tag{position:absolute;right:6px;top:6px;z-index:4;
+ background:var(--point);color:#FFF8E9;font-size:9px;padding:2px 6px;border-radius:999px;letter-spacing:.02em}
 .admin-act button{flex:1;height:44px;border-radius:10px;border:1px solid var(--line);background:#fff;
  font-size:13.5px;color:var(--err);cursor:pointer}
 
@@ -193,7 +197,7 @@ footer{padding:0 24px 96px;text-align:center;font-size:11.5px;color:#A79880;line
 <div class="dim" id="formDim" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-label="편지 쓰기">
     <div class="sh-top">
-      <h2>편지 쓰기</h2>
+      <h2 id="formTitle">편지 쓰기</h2>
       <button class="icon-btn" type="button" data-close="formDim" aria-label="닫기">
         <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -223,7 +227,6 @@ footer{padding:0 24px 96px;text-align:center;font-size:11.5px;color:#A79880;line
 
     <div class="err" id="fErr" hidden></div>
     <button class="submit" id="submitBtn" type="button">마음 보내기</button>
-    <div class="hint">한 번 건 편지는 직접 지울 수 없습니다. 보내기 전에 한 번 읽어 보세요.</div>
   </div>
 </div>
 
@@ -239,6 +242,10 @@ footer{padding:0 24px 96px;text-align:center;font-size:11.5px;color:#A79880;line
     <div class="paper">
       <div class="who"><b id="rName"></b><span id="rRole"></span><i id="rAt"></i></div>
       <div class="body" id="rBody"></div>
+    </div>
+    <div class="mine-act" id="mineAct" hidden>
+      <button type="button" id="editBtn">고치기</button>
+      <button type="button" id="delBtn" class="danger">지우기</button>
     </div>
     <div class="admin-act" id="adminAct" hidden>
       <button type="button" id="hideBtn">이 편지 내리기</button>
@@ -257,7 +264,14 @@ const $ = function (id) { return document.getElementById(id); };
 const ROW = 3;              // 빨랫줄 한 줄에 걸리는 장수
 let letters = [];
 let current = null;
+let editing = null;
 let adminPin = null;
+
+function loadMine() {
+  try { return JSON.parse(localStorage.getItem('rp_mine') || '{}'); } catch (e) { return {}; }
+}
+function saveMine(m) { localStorage.setItem('rp_mine', JSON.stringify(m)); }
+let mine = loadMine();
 
 /* 관리자 모드는 주소에 ?admin=1 을 붙였을 때만 */
 const qs = new URLSearchParams(location.search);
@@ -332,8 +346,9 @@ function render() {
   for (let i = 0; i < letters.length; i += ROW) {
     html += '<div class="line"><div class="row">';
     letters.slice(i, i + ROW).forEach(function (l) {
-      html += '<button class="pin" type="button" data-id="' + esc(l.id) + '">' +
-        '<div class="card">' +
+      const isMine = !!mine[l.id];
+      html += '<button class="pin' + (isMine ? ' mine' : '') + '" type="button" data-id="' + esc(l.id) + '">' +
+        '<div class="card">' + (isMine ? '<span class="tag">내 편지</span>' : '') +
           '<div class="ph ' + tone(l.id) + '"><span>' + esc(l.message) + '</span></div>' +
           '<div class="nm">' + esc(l.name) + '<em>' + esc(roleText(l)) + '</em></div>' +
         '</div></button>';
@@ -356,6 +371,7 @@ $('main').addEventListener('click', function (e) {
   $('rAt').textContent = md.length === 2 ? Number(md[0]) + '월 ' + Number(md[1]) + '일' : '';
   $('rBody').textContent = l.message;
   document.querySelector('.read .paper').className = 'paper ' + tone(l.id);
+  $('mineAct').hidden = !mine[l.id];
   $('adminAct').hidden = !isAdmin;
   open('readDim');
 });
@@ -388,16 +404,71 @@ document.querySelectorAll('#roleChips .chip').forEach(function (c) {
   c.addEventListener('click', function () { role = c.dataset.role; paintRole(); });
 });
 
-$('fMsg').addEventListener('input', function () { $('cnt').textContent = $('fMsg').value.length; });
+function fitBox() {
+  const t = $('fMsg');
+  t.style.height = 'auto';
+  t.style.height = Math.max(190, t.scrollHeight) + 'px';
+}
+$('fMsg').addEventListener('input', function () {
+  $('cnt').textContent = $('fMsg').value.length;
+  fitBox();
+});
 
 $('writeBtn').addEventListener('click', function () {
+  editing = null;
+  $('formTitle').textContent = '편지 쓰기';
+  $('submitBtn').textContent = '마음 보내기';
   $('fName').value = localStorage.getItem('rp_name') || '';
+  $('fMsg').value = '';
+  $('cnt').textContent = '0';
+  role = localStorage.getItem('rp_role') || '';
   const g = localStorage.getItem('rp_grade'), c = localStorage.getItem('rp_class');
-  if (g) $('fGrade').value = g;
-  if (c) $('fClass').value = c;
+  $('fGrade').value = g || '';
+  $('fClass').value = c || '';
   paintRole();
   $('fErr').hidden = true;
   open('formDim');
+  fitBox();
+});
+
+$('editBtn').addEventListener('click', function () {
+  if (!current) return;
+  editing = current;
+  $('formTitle').textContent = '편지 고치기';
+  $('submitBtn').textContent = '고친 내용 저장';
+  $('fName').value = current.name;
+  $('fMsg').value = current.message;
+  $('cnt').textContent = String(current.message.length);
+  role = current.role;
+  $('fGrade').value = current.grade || '';
+  $('fClass').value = current.classNo || '';
+  paintRole();
+  $('fErr').hidden = true;
+  close('readDim');
+  open('formDim');
+  fitBox();
+});
+
+$('delBtn').addEventListener('click', function () {
+  if (!current) return;
+  if (!confirm('편지를 지울까요? 지우면 되돌릴 수 없습니다.')) return;
+  const id = current.id;
+  fetch(API_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'remove', id: id, token: mine[id] })
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (!res.ok) throw new Error(res.error || '지우지 못했습니다.');
+      delete mine[id];
+      saveMine(mine);
+      close('readDim');
+      toast('편지를 지웠습니다.');
+      load();
+    })
+    .catch(function (e) { toast(e.message || '지우지 못했습니다.'); });
 });
 
 $('submitBtn').addEventListener('click', function () {
@@ -416,16 +487,18 @@ $('submitBtn').addEventListener('click', function () {
   err.hidden = true;
 
   const btn = $('submitBtn');
-  btn.disabled = true; btn.textContent = '보내는 중…';
+  const label = editing ? '고친 내용 저장' : '마음 보내기';
+  btn.disabled = true; btn.textContent = editing ? '저장하는 중…' : '보내는 중…';
 
   fetch(API_URL, {
     method: 'POST',
     redirect: 'follow',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      action: 'create', name: name, role: role,
-      grade: grade, classNo: classNo, message: message
-    })
+    body: JSON.stringify(editing
+      ? { action: 'update', id: editing.id, token: mine[editing.id],
+          name: name, role: role, grade: grade, classNo: classNo, message: message }
+      : { action: 'create', name: name, role: role,
+          grade: grade, classNo: classNo, message: message })
   })
     .then(function (r) { return r.json(); })
     .then(function (res) {
@@ -436,13 +509,19 @@ $('submitBtn').addEventListener('click', function () {
         localStorage.setItem('rp_grade', grade);
         localStorage.setItem('rp_class', classNo);
       }
+      if (!editing && res.data && res.data.token) {
+        mine[res.data.id] = res.data.token;   // 이 브라우저에서만 고치고 지울 수 있다
+        saveMine(mine);
+      }
+      const wasEditing = !!editing;
+      editing = null;
       $('fMsg').value = ''; $('cnt').textContent = '0';
       close('formDim');
-      toast('편지를 걸었습니다. 고맙습니다.');
+      toast(wasEditing ? '편지를 고쳤습니다.' : '편지를 걸었습니다. 고맙습니다.');
       load();
     })
     .catch(function (e) { fail(e.message || '보내지 못했습니다. 잠시 후 다시 시도하세요.'); })
-    .finally(function () { btn.disabled = false; btn.textContent = '마음 보내기'; });
+    .finally(function () { btn.disabled = false; btn.textContent = label; });
 });
 
 /* ── 관리자: 편지 내리기 ── */

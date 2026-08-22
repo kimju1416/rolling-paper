@@ -7,7 +7,7 @@
 const SHEET_NAME = '편지';
 const P_SS_ID = 'SS_ID';
 const P_PIN = 'ADMIN_PIN';
-const HEADERS = ['ID', '작성시각', '이름', '구분', '학년', '반', '내용', '상태'];
+const HEADERS = ['ID', '작성시각', '이름', '구분', '학년', '반', '내용', '상태', '편집키'];
 
 const MAX_NAME = 12;
 const MAX_MESSAGE = 500;
@@ -64,6 +64,20 @@ function getSheet_() {
   return sh;
 }
 
+/** 예전에 만든 시트에 '편집키' 열이 없으면 채워 넣는다 */
+function ensureColumns_(sh) {
+  const head = sh.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  if (String(head[8]) !== '편집키') {
+    sh.getRange(1, 9).setValue('편집키').setFontWeight('bold');
+  }
+}
+
+/** 시트가 날짜로 바꿔 저장한 경우까지 같은 문자열로 맞춘다 */
+function fmtAt_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
+  return String(v || '');
+}
+
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -85,6 +99,9 @@ function doPost(e) {
     switch (body.action) {
       case 'create': return json_(createLetter_(body));
       case 'hide':   return json_(hideLetter_(body));
+      case 'update': return json_(updateLetter_(body));
+      case 'remove': return json_(removeMine_(body));
+      case 'purge':  return json_(deleteLetter_(body));
       case 'admin':  return json_(listAll_(body));
       default:       return json_({ ok: false, error: '알 수 없는 요청입니다.' });
     }
@@ -106,7 +123,7 @@ function listLetters_() {
     if (r[7] === '숨김') continue;
     letters.push({
       id: String(r[0]),
-      at: String(r[1]),
+      at: fmtAt_(r[1]),
       name: String(r[2]),
       role: String(r[3]),
       grade: r[4] === '' ? null : Number(r[4]),
@@ -149,13 +166,87 @@ function createLetter_(body) {
   try {
     lock.waitLock(10000);
     const sh = getSheet_();
+    ensureColumns_(sh);
     const id = Utilities.getUuid().slice(0, 8);
+    const token = Utilities.getUuid();
     const at = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
-    sh.appendRow([id, at, name, role, grade, classNo, message, '공개']);
+    sh.appendRow([id, at, name, role, grade, classNo, message, '공개', token]);
     cache.put(key, '1', 300);
-    return { ok: true, data: { id: id, at: at } };
+    return { ok: true, data: { id: id, at: at, token: token } };
   } catch (err) {
     return { ok: false, error: '저장하지 못했습니다. 잠시 후 다시 시도하세요.' };
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
+  }
+}
+
+/**
+ * 본인 확인 — 편집키가 맞으면 행 번호를, 남의 편지면 -1, 없으면 0을 돌려준다.
+ * 편집키는 편지를 쓴 그 브라우저에만 저장돼 있다.
+ */
+function findMyRow_(sh, id, token) {
+  const last = sh.getLastRow();
+  if (last < 2) return 0;
+  const rows = sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]) === id) {
+      const saved = String(rows[i][8] || '');
+      return (saved && token && saved === token) ? i + 2 : -1;
+    }
+  }
+  return 0;
+}
+
+/** 본인이 쓴 편지 고치기 */
+function updateLetter_(body) {
+  const id = String(body.id || '');
+  const token = String(body.token || '');
+  const name = String(body.name || '').trim();
+  const role = String(body.role || '').trim();
+  const message = String(body.message || '').trim();
+  let grade = '';
+  let classNo = '';
+
+  if (!name) return { ok: false, error: '이름을 입력하세요.' };
+  if (name.length > MAX_NAME) return { ok: false, error: '이름은 ' + MAX_NAME + '자까지 쓸 수 있습니다.' };
+  if (ROLES.indexOf(role) === -1) return { ok: false, error: '구분을 선택하세요.' };
+  if (!message) return { ok: false, error: '편지 내용을 입력하세요.' };
+  if (message.length > MAX_MESSAGE) return { ok: false, error: '편지는 ' + MAX_MESSAGE + '자까지 쓸 수 있습니다.' };
+  if (role === '학생') {
+    grade = Number(body.grade);
+    classNo = Number(body.classNo);
+    if (!(grade >= 1 && grade <= 3)) return { ok: false, error: '학년을 선택하세요.' };
+    if (!(classNo >= 1 && classNo <= 20)) return { ok: false, error: '반을 선택하세요.' };
+  }
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sh = getSheet_();
+    const row = findMyRow_(sh, id, token);
+    if (row === 0) return { ok: false, error: '해당 편지를 찾지 못했습니다.' };
+    if (row < 0) return { ok: false, error: '이 편지는 고칠 수 없습니다.' };
+    sh.getRange(row, 3, 1, 5).setValues([[name, role, grade, classNo, message]]);
+    return { ok: true, data: { id: id } };
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
+  }
+}
+
+/** 본인이 쓴 편지 지우기 */
+function removeMine_(body) {
+  const id = String(body.id || '');
+  const token = String(body.token || '');
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sh = getSheet_();
+    const row = findMyRow_(sh, id, token);
+    if (row === 0) return { ok: false, error: '해당 편지를 찾지 못했습니다.' };
+    if (row < 0) return { ok: false, error: '이 편지는 지울 수 없습니다.' };
+    sh.deleteRow(row);
+    return { ok: true, data: { id: id, deleted: true } };
   } finally {
     try { lock.releaseLock(); } catch (ignore) {}
   }
@@ -191,6 +282,31 @@ function hideLetter_(body) {
   }
 }
 
+/** 관리자: 편지를 시트에서 완전히 지운다 (되돌릴 수 없음) */
+function deleteLetter_(body) {
+  if (!checkPin_(body.pin)) return { ok: false, error: '관리 비밀번호가 맞지 않습니다.' };
+  const id = String(body.id || '');
+  if (!id) return { ok: false, error: '지울 편지를 고르세요.' };
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sh = getSheet_();
+    const last = sh.getLastRow();
+    if (last < 2) return { ok: false, error: '편지가 없습니다.' };
+    const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]) === id) {
+        sh.deleteRow(i + 2);
+        return { ok: true, data: { id: id, deleted: true } };
+      }
+    }
+    return { ok: false, error: '해당 편지를 찾지 못했습니다.' };
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
+  }
+}
+
 /** 관리자: 숨긴 것까지 전체 목록 */
 function listAll_(body) {
   if (!checkPin_(body.pin)) return { ok: false, error: '관리 비밀번호가 맞지 않습니다.' };
@@ -201,7 +317,7 @@ function listAll_(body) {
   const letters = rows.map(function (r) {
     return {
       id: String(r[0]),
-      at: String(r[1]),
+      at: fmtAt_(r[1]),
       name: String(r[2]),
       role: String(r[3]),
       grade: r[4] === '' ? null : Number(r[4]),
