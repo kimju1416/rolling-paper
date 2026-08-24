@@ -7,6 +7,8 @@
 const SHEET_NAME = '편지';
 const P_SS_ID = 'SS_ID';
 const P_PIN = 'ADMIN_PIN';
+const P_DEADLINE = 'DEADLINE';
+const DEADLINE_DEFAULT = '2026-08-27 23:59';   // 이 시각까지 쓸 수 있다. 빈 값이면 마감 없음
 const HEADERS = ['ID', '작성시각', '이름', '구분', '학년', '반', '내용', '상태', '편집키'];
 
 const MAX_NAME = 12;
@@ -71,6 +73,22 @@ function fmtAt_(v) {
   return String(v || '');
 }
 
+/** 마감 시각 (스크립트 속성이 있으면 그 값이 우선) */
+function deadline_() {
+  const v = PropertiesService.getScriptProperties().getProperty(P_DEADLINE);
+  return v === null ? DEADLINE_DEFAULT : v;
+}
+
+function nowKst_() {
+  return Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
+}
+
+/** 마감이 지났는지 — 같은 형식이라 문자열 비교로 충분하다 */
+function isClosed_() {
+  const d = deadline_();
+  return !!d && nowKst_() > d;
+}
+
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -96,6 +114,7 @@ function doPost(e) {
       case 'remove': return json_(removeMine_(body));
       case 'purge':  return json_(deleteLetter_(body));
       case 'setpin': return json_(changePin_(body));
+      case 'setdeadline': return json_(changeDeadline_(body));
       case 'admin':  return json_(listAll_(body));
       default:       return json_({ ok: false, error: '알 수 없는 요청입니다.' });
     }
@@ -108,7 +127,7 @@ function doPost(e) {
 function listLetters_() {
   const sh = getSheet_();
   const last = sh.getLastRow();
-  if (last < 2) return { letters: [], count: 0 };
+  if (last < 2) return { letters: [], count: 0, closed: isClosed_(), deadline: deadline_() };
 
   const rows = sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
   const letters = [];
@@ -125,11 +144,12 @@ function listLetters_() {
       message: String(r[6])
     });
   }
-  return { letters: letters, count: letters.length };
+  return { letters: letters, count: letters.length, closed: isClosed_(), deadline: deadline_() };
 }
 
 /** 편지 등록 */
 function createLetter_(body) {
+  if (isClosed_()) return { ok: false, error: '편지 받는 기간이 끝났습니다.' };
   const name = String(body.name || '').trim();
   const role = String(body.role || '').trim();
   const message = String(body.message || '').trim();
@@ -193,6 +213,7 @@ function findMyRow_(sh, id, token) {
 
 /** 본인이 쓴 편지 고치기 */
 function updateLetter_(body) {
+  if (isClosed_()) return { ok: false, error: '편지 받는 기간이 끝나 고칠 수 없습니다.' };
   const id = String(body.id || '');
   const token = String(body.token || '');
   const name = String(body.name || '').trim();
@@ -258,6 +279,20 @@ function changePin_(body) {
   if (next.length < 4) return { ok: false, error: '새 비밀번호는 네 자리 이상으로 정하세요.' };
   PropertiesService.getScriptProperties().setProperty(P_PIN, next);
   return { ok: true, data: { changed: true } };
+}
+
+/**
+ * 관리자: 마감 시각 바꾸기.
+ * newDeadline 을 'yyyy-MM-dd HH:mm' 으로 주면 그 시각까지, 빈 문자열이면 마감 없이 계속 받는다.
+ */
+function changeDeadline_(body) {
+  if (!checkPin_(body.pin)) return { ok: false, error: '관리 비밀번호가 맞지 않습니다.' };
+  const v = String(body.newDeadline === undefined ? '' : body.newDeadline).trim();
+  if (v && !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) {
+    return { ok: false, error: '마감 시각은 2026-08-27 23:59 형식으로 적으세요.' };
+  }
+  PropertiesService.getScriptProperties().setProperty(P_DEADLINE, v);
+  return { ok: true, data: { deadline: v, closed: isClosed_() } };
 }
 
 /** 관리자: 편지 숨기기 / 되돌리기 */

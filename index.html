@@ -105,6 +105,8 @@ main{padding:14px 0 120px;min-height:40vh}
 .cta button{width:100%;height:52px;border:none;border-radius:13px;background:var(--point);color:#FFF8E9;
  font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(90,65,25,.26)}
 .cta button:active{background:var(--point-dark)}
+.cta button:disabled{background:#C9BCA4;color:#F7F2E7;cursor:default;box-shadow:none}
+#editBtn[hidden]{display:none}
 
 /* 시트·모달 */
 .dim{position:fixed;inset:0;z-index:50;background:rgba(40,30,15,.45);
@@ -269,6 +271,8 @@ let letters = [];
 let current = null;
 let editing = null;
 let adminPin = null;
+let closed = false;      // 받는 기간이 끝났는지
+let deadline = '';       // 'yyyy-MM-dd HH:mm'
 
 function loadMine() {
   try { return JSON.parse(localStorage.getItem('rp_mine') || '{}'); } catch (e) { return {}; }
@@ -323,6 +327,8 @@ function load() {
     .then(function (r) { return r.json(); })
     .then(function (res) {
       if (!res.ok) throw new Error(res.error || '목록을 불러오지 못했습니다.');
+      closed = !!res.data.closed;
+      deadline = res.data.deadline || '';
       letters = res.data.letters.slice().reverse();   // 새 편지가 위로
       render();
     })
@@ -335,10 +341,26 @@ function load() {
     });
 }
 
+function deadlineText() {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(deadline);
+  return m ? Number(m[1]) + '월 ' + Number(m[2]) + '일' : '';
+}
+
 function render() {
+  const btn = document.querySelector('.cta button');
+  if (closed) {
+    btn.disabled = true;
+    btn.textContent = '편지 받는 기간이 끝났습니다';
+  } else {
+    btn.disabled = false;
+    btn.textContent = '내 편지 걸기';
+  }
+
+  const d = deadlineText();
   $('meta').innerHTML = letters.length
     ? '지금까지 <b>' + letters.length + '</b>장이 걸렸습니다'
-    : '아직 편지가 없습니다';
+      + (closed ? ' · 마감되었습니다' : (d ? ' · <b>' + d + '</b>까지' : ''))
+    : (closed ? '편지 받는 기간이 끝났습니다' : '아직 편지가 없습니다');
 
   if (!letters.length) {
     $('main').innerHTML = '<div class="state">첫 편지를 걸어 주세요.</div>';
@@ -375,6 +397,7 @@ $('main').addEventListener('click', function (e) {
   $('rBody').textContent = l.message;
   document.querySelector('.read .paper').className = 'paper ' + tone(l.id);
   $('mineAct').hidden = !mine[l.id];
+  $('editBtn').hidden = closed;
   $('adminAct').hidden = !isAdmin;
   open('readDim');
 });
@@ -435,6 +458,7 @@ $('fMsg').addEventListener('input', function () {
 });
 
 $('writeBtn').addEventListener('click', function () {
+  if (closed) { toast('편지 받는 기간이 끝났습니다.'); return; }
   editing = null;
   $('formTitle').textContent = '편지 쓰기';
   $('submitBtn').textContent = '마음 보내기';
