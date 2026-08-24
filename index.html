@@ -341,11 +341,6 @@ function load() {
     });
 }
 
-function deadlineText() {
-  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(deadline);
-  return m ? Number(m[1]) + '월 ' + Number(m[2]) + '일' : '';
-}
-
 function render() {
   const btn = document.querySelector('.cta button');
   if (closed) {
@@ -356,10 +351,8 @@ function render() {
     btn.textContent = '내 편지 걸기';
   }
 
-  const d = deadlineText();
   $('meta').innerHTML = letters.length
-    ? '지금까지 <b>' + letters.length + '</b>장이 걸렸습니다'
-      + (closed ? ' · 마감되었습니다' : (d ? ' · <b>' + d + '</b>까지' : ''))
+    ? '지금까지 <b>' + letters.length + '</b>장이 걸렸습니다' + (closed ? ' · 마감되었습니다' : '')
     : (closed ? '편지 받는 기간이 끝났습니다' : '아직 편지가 없습니다');
 
   if (!letters.length) {
